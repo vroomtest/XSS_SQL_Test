@@ -46,7 +46,7 @@ pipeline {
             }
         }
         
-       stage('Build Docker Image') {
+        stage('Build Docker Image') {
             steps {
                 dir('workspace/flask') {
                     sh 'docker build -t flask-app .'
@@ -101,16 +101,17 @@ pipeline {
             steps {
                 dir('workspace/flask') {
                     script {
-                    // Perform UI testing for SQL injection
-                    def sql_injection_test = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=\' OR 1=1--" | grep "attack detected"', returnStatus: true)
-                    if (sql_injection_test != 0) {
-                        error "SQL injection test failed"
-                    }
+                        // Perform UI testing for SQL injection
+                        def sql_injection_test = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=\' OR 1=1--" | grep "attack detected"', returnStatus: true)
+                        if (sql_injection_test != 0) {
+                            error "SQL injection test failed"
+                        }
 
-                    // Perform UI testing for XSS attack
-                    def xss_attack_test = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=<script>alert(\'XSS\')</script>" | grep "attack detected"', returnStatus: true)
-                    if (xss_attack_test != 0) {
-                        error "XSS attack test failed"
+                        // Perform UI testing for XSS attack
+                        def xss_attack_test = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=<script>alert(\'XSS\')</script>" | grep "attack detected"', returnStatus: true)
+                        if (xss_attack_test != 0) {
+                            error "XSS attack test failed"
+                        }
                     }
                 }
             }
