@@ -27,7 +27,7 @@ def is_sql_injection(input_text):
             return True
     return False
 
-@app.route('/', methods=['POST'])
+@app.route('/', methods=['GET','POST'])
 def home():
     if request.method == 'POST':
         password = request.form['search_term']
