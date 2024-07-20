@@ -3,18 +3,18 @@ import re
 
 app = Flask(__name__)
 
-def is_xss_attack(input_text):
+def is_xss_attack(search_term):
     xss_patterns = [
         r'<script.*?>.*?</script.*?>',  
         r'<.*?on.*?=.*?>',  
         r'<.*?>'  
     ]
     for pattern in xss_patterns:
-        if re.search(pattern, input_text, re.IGNORECASE):
+        if re.search(pattern, search_term, re.IGNORECASE):
             return True
     return False
 
-def is_sql_injection(input_text):
+def is_sql_injection(search_term):
     sql_patterns = [
         r'\' OR \'1\'=\'1',  
         r'\' OR 1=1',  
@@ -23,7 +23,7 @@ def is_sql_injection(input_text):
         r'\'',  
     ]
     for pattern in sql_patterns:
-        if re.search(pattern, input_text, re.IGNORECASE):
+        if re.search(pattern, search_term, re.IGNORECASE):
             return True
     return False
 
