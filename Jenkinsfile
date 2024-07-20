@@ -99,6 +99,12 @@ pipeline {
                 dir('workspace/flask') {
                     script {
                         echo 'Running SQL Injection Test'
+                        def app_status = sh(script: 'curl -s http://localhost:5000 || true', returnStdout: true).trim()
+                        echo "Flask App Root Response: ${app_status}"
+                        if (app_status == "") {
+                            error "Flask app is not responding"
+                        }
+
                         def sql_injection_response = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=\' OR 1=1--" || true', returnStdout: true).trim()
                         echo "SQL Injection Test Response: ${sql_injection_response}"
                         if (!sql_injection_response.contains("SQL injection attack detected")) {
