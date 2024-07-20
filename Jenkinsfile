@@ -98,13 +98,17 @@ pipeline {
             steps {
                 dir('workspace/flask') {
                     script {
-                        def sql_injection_test = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=\' OR 1=1--" | grep "SQL injection attack detected"', returnStatus: true)
-                        if (sql_injection_test != 0) {
+                        echo 'Running SQL Injection Test'
+                        def sql_injection_response = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=\' OR 1=1--"', returnStdout: true).trim()
+                        echo "SQL Injection Test Response: ${sql_injection_response}"
+                        if (!sql_injection_response.contains("SQL injection attack detected")) {
                             error "SQL injection test failed"
                         }
 
-                        def xss_attack_test = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=<script>alert(\'XSS\')</script>" | grep "XSS attack detected"', returnStatus: true)
-                        if (xss_attack_test != 0) {
+                        echo 'Running XSS Attack Test'
+                        def xss_attack_response = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=<script>alert(\'XSS\')</script>"', returnStdout: true).trim()
+                        echo "XSS Attack Test Response: ${xss_attack_response}"
+                        if (!xss_attack_response.contains("XSS attack detected")) {
                             error "XSS attack test failed"
                         }
                     }
