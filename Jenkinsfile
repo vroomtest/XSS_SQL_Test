@@ -20,7 +20,7 @@ pipeline {
         stage('Clone Repository') {
             steps {
                 dir('workspace') {
-                    git branch: 'main', url: 'https://github.com/vroomtest/vroom'
+                    git branch: 'main', url: 'https://github.com/vroomtest/XSS_SQL_Test'
                 }
             }
         }
