@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        VENV_PATH = 'venv'
+        VENV_PATH = 'workspace/flask/venv'
         FLASK_APP_PATH = 'workspace/flask/app.py'  // Correct path to the Flask app
-        PATH = "$VENV_PATH/bin:$PATH"
+        PATH = "${VENV_PATH}/bin:${env.PATH}"
         SONARQUBE_SCANNER_HOME = tool name: 'SonarQube Scanner'
         SONARQUBE_TOKEN = 'squ_870452dbd1725e753c04f7220aa9e3459b2e00ca'  // Set your new SonarQube token here
         DEPENDENCY_CHECK_HOME = '/var/jenkins_home/tools/org.jenkinsci.plugins.DependencyCheck.tools.DependencyCheckInstallation/OWASP_Dependency-Check/dependency-check'
@@ -28,7 +28,7 @@ pipeline {
         stage('Setup Virtual Environment') {
             steps {
                 dir('workspace/flask') {
-                    sh 'python3 -m venv $VENV_PATH'
+                    sh 'python3 -m venv venv'
                 }
             }
         }
@@ -38,7 +38,7 @@ pipeline {
                 dir('workspace/flask') {
                     sh '''
                         set +e  # Allow non-zero exit codes
-                        source $VENV_PATH/bin/activate
+                        . ${VENV_PATH}/bin/activate
                         pip install -r requirements.txt
                         set -e  # Disallow non-zero exit codes
                     '''
@@ -59,9 +59,9 @@ pipeline {
                 script {
                     echo 'Deploying Flask App...'
                     // Stop any running container on port 5000
-                    sh 'docker ps --filter publish=5000 --format "{{.ID}}" | xargs -r docker stop'
+                    sh 'docker ps --filter publish=5000 --format "{{.ID}}" | xargs -r docker stop || true'
                     // Remove the stopped container
-                    sh 'docker ps -a --filter status=exited --filter publish=5000 --format "{{.ID}}" | xargs -r docker rm'
+                    sh 'docker ps -a --filter status=exited --filter publish=5000 --format "{{.ID}}" | xargs -r docker rm || true'
                     // Run the new Flask app container
                     sh 'docker run -d -p 5000:5000 flask-app'
                     sh 'sleep 10'
@@ -74,7 +74,7 @@ pipeline {
                 dir('workspace/flask') {
                     sh '''
                         set +e  # Allow non-zero exit codes
-                        source $VENV_PATH/bin/activate
+                        . ${VENV_PATH}/bin/activate
                         pytest --junitxml=integration-test-results.xml
                         set -e  # Disallow non-zero exit codes
                     '''
