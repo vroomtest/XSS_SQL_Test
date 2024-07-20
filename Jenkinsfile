@@ -102,6 +102,8 @@ pipeline {
                         def app_status = sh(script: 'curl -s http://localhost:5000 || true', returnStdout: true).trim()
                         echo "Flask App Root Response: ${app_status}"
                         if (app_status == "") {
+                            def container_logs = sh(script: 'docker logs $(docker ps -lq)', returnStdout: true).trim()
+                            echo "Docker Container Logs: ${container_logs}"
                             error "Flask app is not responding"
                         }
 
