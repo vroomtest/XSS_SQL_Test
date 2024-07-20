@@ -72,7 +72,7 @@ pipeline {
                             sleep 5
                             curl -s http://127.0.0.1:5000 || echo "Flask app did not start"
                             curl -s -X POST -F "search_term=hello" http://127.0.0.1:5000 | grep "Search Result"
-                            curl -s -X POST -F "search_term=1=1--" http://127.0.0.1:5000 | grep "Error"
+                            curl -s -X POST -F "search_term=1=1--" http://127.0.0.1:5000 | grep "Error" 
                             curl -s -X POST -F "search_term=<script>alert(XSS)</script>" http://127.0.0.1:5000 | grep "Error"
                             pkill -f "flask run"
                             set -e
