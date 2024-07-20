@@ -2,9 +2,9 @@ pipeline {
     agent any
 
     environment {
-        VENV_PATH = 'workspace/flask/venv'
+        VENV_PATH = 'venv'
         FLASK_APP_PATH = 'workspace/flask/app.py'  // Correct path to the Flask app
-        PATH = "${VENV_PATH}/bin:${env.PATH}"
+        PATH = "${env.WORKSPACE}/workspace/flask/${VENV_PATH}/bin:${env.PATH}"
         SONARQUBE_SCANNER_HOME = tool name: 'SonarQube Scanner'
         SONARQUBE_TOKEN = 'squ_870452dbd1725e753c04f7220aa9e3459b2e00ca'  // Set your new SonarQube token here
         DEPENDENCY_CHECK_HOME = '/var/jenkins_home/tools/org.jenkinsci.plugins.DependencyCheck.tools.DependencyCheckInstallation/OWASP_Dependency-Check/dependency-check'
@@ -28,7 +28,7 @@ pipeline {
         stage('Setup Virtual Environment') {
             steps {
                 dir('workspace/flask') {
-                    sh 'python3 -m venv venv'
+                    sh 'python3 -m venv ${VENV_PATH}'
                 }
             }
         }
@@ -38,7 +38,7 @@ pipeline {
                 dir('workspace/flask') {
                     sh '''
                         set +e  # Allow non-zero exit codes
-                        . ${VENV_PATH}/bin/activate
+                        . ${env.WORKSPACE}/workspace/flask/${VENV_PATH}/bin/activate
                         pip install -r requirements.txt
                         set -e  # Disallow non-zero exit codes
                     '''
@@ -74,7 +74,7 @@ pipeline {
                 dir('workspace/flask') {
                     sh '''
                         set +e  # Allow non-zero exit codes
-                        . ${VENV_PATH}/bin/activate
+                        . ${env.WORKSPACE}/workspace/flask/${VENV_PATH}/bin/activate
                         pytest --junitxml=integration-test-results.xml
                         set -e  # Disallow non-zero exit codes
                     '''
