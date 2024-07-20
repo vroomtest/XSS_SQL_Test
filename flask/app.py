@@ -30,7 +30,7 @@ def is_sql_injection(search_term):
 @app.route('/', methods=['GET','POST'])
 def home():
     if request.method == 'POST':
-        password = request.form['search_term']
+        search_term = request.form['search_term']
         if is_xss_attack(search_term):
             return render_template('index.html', error='Error with search term')
         if is_sql_injection(search_term):
