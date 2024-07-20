@@ -47,18 +47,6 @@ pipeline {
             }
         }
         
-        stage('Ensure Template Directory') {
-            steps {
-                dir('workspace/flask') {
-                    sh '''
-                        #!/bin/bash
-                        mkdir -p templates
-                        mv index templates/index.html
-                    '''
-                }
-            }
-        }
-        
         stage('Build Docker Image') {
             steps {
                 dir('workspace/flask') {
