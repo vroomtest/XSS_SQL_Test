@@ -37,10 +37,23 @@ pipeline {
             steps {
                 dir('workspace/flask') {
                     sh '''
+                        #!/bin/bash
                         set +e  # Allow non-zero exit codes
                         source "${VENV_PATH}/bin/activate"
                         pip install -r requirements.txt
                         set -e  # Disallow non-zero exit codes
+                    '''
+                }
+            }
+        }
+        
+        stage('Ensure Template Directory') {
+            steps {
+                dir('workspace/flask') {
+                    sh '''
+                        #!/bin/bash
+                        mkdir -p templates
+                        mv index templates/index.html
                     '''
                 }
             }
@@ -53,7 +66,7 @@ pipeline {
                 }
             }
         }
-		
+        
         stage('Deploy Flask App') {
             steps {
                 script {
@@ -68,11 +81,12 @@ pipeline {
                 }
             }
         }
-		
+        
         stage('Integration Testing') {
             steps {
                 dir('workspace/flask') {
                     sh '''
+                        #!/bin/bash
                         set +e  # Allow non-zero exit codes
                         source "${VENV_PATH}/bin/activate"
                         pytest --junitxml=integration-test-results.xml
@@ -81,7 +95,7 @@ pipeline {
                 }
             }
         }
-		
+        
         stage('Dependency Check') {
             steps {
                 script {
@@ -91,60 +105,4 @@ pipeline {
                     sh 'echo "Dependency Check Home: $DEPENDENCY_CHECK_HOME"'
                     sh 'ls -l $DEPENDENCY_CHECK_HOME/bin'
                     sh '''
-                    ${DEPENDENCY_CHECK_HOME}/bin/dependency-check.sh --project "Flask App" --scan . --format "ALL" --out workspace/flask/dependency-check-report || true
-                    '''
-                }
-            }
-        }
-		
-        stage('UI Testing') {
-            steps {
-                dir('workspace/flask') {
-                    script {
-                        // Perform UI testing for SQL injection
-                        def sql_injection_test = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=\' OR 1=1--" | grep "attack detected"', returnStatus: true)
-                        if (sql_injection_test != 0) {
-                            error "SQL injection test failed"
-                        }
-
-                        // Perform UI testing for XSS attack
-                        def xss_attack_test = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=<script>alert(\'XSS\')</script>" | grep "attack detected"', returnStatus: true)
-                        if (xss_attack_test != 0) {
-                            error "XSS attack test failed"
-                        }
-                    }
-                }
-            }
-        }
-        
-        stage('SonarQube Analysis') {
-            steps {
-                withSonarQubeEnv('SonarQube') {
-                    dir('workspace/flask') {
-                        sh '''
-                        ${SONARQUBE_SCANNER_HOME}/bin/sonar-scanner \
-                        -Dsonar.projectKey=flask-app \
-                        -Dsonar.sources=. \
-                        -Dsonar.inclusions=app.py \
-                        -Dsonar.host.url=http://sonarqube:9000 \
-                        -Dsonar.login=${SONARQUBE_TOKEN}
-                        '''
-                    }
-                }
-            }
-        }
-        
-    }
-    
-    post {
-        failure {
-            script {
-                echo 'Build failed, not deploying Flask app.'
-            }
-        }
-        always {
-            archiveArtifacts artifacts: 'workspace/flask/dependency-check-report/*.*', allowEmptyArchive: true
-            archiveArtifacts artifacts: 'workspace/flask/integration-test-results.xml', allowEmptyArchive: true
-        }
-    }
-}
+                   
