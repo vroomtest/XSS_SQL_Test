@@ -27,21 +27,35 @@ def is_sql_injection(input_text):
             return True
     return False
 
-@app.route('/')
+@app.route('/', methods=['POST'])
 def home():
-    return render_template('index.html')
-
-@app.route('/search', methods=['POST'])
-def search():
-    search_term = request.form['search_term']
-
-    if is_xss_attack(search_term):
-        return render_template('index.html', error='XSS attack detected. Please enter a valid search term.')
-
-    if is_sql_injection(search_term):
-        return render_template('index.html', error='SQL injection attack detected. Please enter a valid search term.')
-
-    return render_template('result.html', search_term=search_term)
+    if request.method == 'POST':
+        password = request.form['search_term']
+        if is_xss_attack(search_term):
+            return render_template('index.html', error='Error with search term')
+        if is_sql_injection(search_term):
+            return render_template('index.html',error='Error with search term')
+        return render_template_string('result.html', search_term=search_term)
+    return render_template_string(HOME_PAGE_TEMPLATE)
 
 if __name__ == '__main__':
-    app.run(host='0.0.0.0', port=5000)
+    app.run(debug=True, host='0.0.0.0')
+
+# @app.route('/')
+# def home():
+    # return render_template('index.html')
+
+# @app.route('/search', methods=['POST'])
+# def search():
+    # search_term = request.form['search_term']
+
+    # if is_xss_attack(search_term):
+        # return render_template('index.html', error='XSS attack detected. Please enter a valid search term.')
+
+    # if is_sql_injection(search_term):
+        # return render_template('index.html', error='SQL injection attack detected. Please enter a valid search term.')
+
+    # return render_template('result.html', search_term=search_term)
+
+# if __name__ == '__main__':
+    # app.run(host='0.0.0.0', port=5000)

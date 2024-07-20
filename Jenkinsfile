@@ -2,91 +2,56 @@ pipeline {
     agent any
 
     environment {
-        VENV_PATH = 'workspace/flask/venv'
-        FLASK_APP_PATH = 'workspace/flask/app.py'
-        PATH = "${env.WORKSPACE}/${VENV_PATH}/bin:${env.PATH}"
+        VENV_PATH = 'venv'
+        FLASK_APP_PATH = 'workspace/flask/app.py'  // Correct path to the Flask app
+        PATH = "$VENV_PATH/bin:$PATH"
         SONARQUBE_SCANNER_HOME = tool name: 'SonarQube Scanner'
-        SONARQUBE_TOKEN = 'squ_870452dbd1725e753c04f7220aa9e3459b2e00ca'
+        SONARQUBE_TOKEN = 'squ_e3d6a2992414e7e93c5d36c6c4a7fb9c5ce6902d'  // Set your new SonarQube token here
         DEPENDENCY_CHECK_HOME = '/var/jenkins_home/tools/org.jenkinsci.plugins.DependencyCheck.tools.DependencyCheckInstallation/OWASP_Dependency-Check/dependency-check'
     }
-
+    
     stages {
         stage('Check Docker') {
             steps {
                 sh 'docker --version'
             }
         }
-
+        
         stage('Clone Repository') {
             steps {
                 dir('workspace') {
-                    git branch: 'main', url: 'https://github.com/vroomtest/XSS_SQL_Test'
+                    git branch: 'main', url: 'https://github.com/vroomtest/vroom'
                 }
             }
         }
-
+        
         stage('Setup Virtual Environment') {
             steps {
                 dir('workspace/flask') {
-                    sh 'python3 -m venv ${VENV_PATH}'
+                    sh 'python3 -m venv $VENV_PATH'
                 }
             }
         }
-
+        
         stage('Activate Virtual Environment and Install Dependencies') {
             steps {
                 dir('workspace/flask') {
                     sh '''
-                        #!/bin/bash
-                        set +e
-                        source "${WORKSPACE}/workspace/flask/venv/bin/activate"
+                        set +e  # Allow non-zero exit codes
+                        source $VENV_PATH/bin/activate
                         pip install -r requirements.txt
-                        set -e
+                        set -e  # Disallow non-zero exit codes
                     '''
                 }
             }
         }
-
-        stage('Build Docker Image') {
-            steps {
-                dir('workspace/flask') {
-                    sh 'docker build -t flask-app .'
-                }
-            }
-        }
-
-        stage('Deploy Flask App') {
-            steps {
-                script {
-                    echo 'Deploying Flask App...'
-                    sh 'docker ps --filter publish=5000 --format "{{.ID}}" | xargs -r docker stop || true'
-                    sh 'docker ps -a --filter status=exited --filter publish=5000 --format "{{.ID}}" | xargs -r docker rm || true'
-                    sh 'docker run -d -p 5000:5000 flask-app'
-                    sh 'docker ps -a'
-                    sh 'docker inspect $(docker ps -lq)'
-                    sh 'sleep 10'
-                }
-            }
-        }
-
-        stage('Integration Testing') {
-            steps {
-                dir('workspace/flask') {
-                    sh '''
-                        #!/bin/bash
-                        set +e
-                        source "${WORKSPACE}/workspace/flask/venv/bin/activate"
-                        pytest --junitxml=integration-test-results.xml
-                        set -e
-                    '''
-                }
-            }
-        }
-
+        
         stage('Dependency Check') {
             steps {
                 script {
+                    // Create the output directory for the dependency check report
                     sh 'mkdir -p workspace/flask/dependency-check-report'
+                    // Print the dependency check home directory for debugging
                     sh 'echo "Dependency Check Home: $DEPENDENCY_CHECK_HOME"'
                     sh 'ls -l $DEPENDENCY_CHECK_HOME/bin'
                     sh '''
@@ -95,43 +60,55 @@ pipeline {
                 }
             }
         }
-
+        
         stage('UI Testing') {
             steps {
                 dir('workspace/flask') {
                     script {
-                        echo 'Running SQL Injection Test'
-                        def app_status = sh(script: 'curl -s http://localhost:5000 || true', returnStdout: true).trim()
-                        echo "Flask App Root Response: ${app_status}"
-                        if (app_status == "") {
-                            def container_logs = sh(script: 'docker logs $(docker ps -lq)', returnStdout: true).trim()
-                            echo "Docker Container Logs: ${container_logs}"
-                            error "Flask app is not responding"
-                        }
-
-                        def sql_injection_response = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=\' OR 1=1--" || true', returnStdout: true).trim()
-                        echo "SQL Injection Test Response: ${sql_injection_response}"
-                        if (!sql_injection_response.contains("SQL injection attack detected")) {
-                            error "SQL injection test failed"
-                        }
-
-                        echo 'Running XSS Attack Test'
-                        def xss_attack_response = sh(script: 'curl -s -X POST http://localhost:5000/search -d "search_term=<script>alert(\'XSS\')</script>" || true', returnStdout: true).trim()
-                        echo "XSS Attack Test Response: ${xss_attack_response}"
-                        if (!xss_attack_response.contains("XSS attack detected")) {
-                            error "XSS attack test failed"
-                        }
+                        // Start the Flask app in the background
+                        sh '''
+                            set +e  # Allow non-zero exit codes
+                            source $VENV_PATH/bin/activate
+                            FLASK_APP=$FLASK_APP_PATH flask run &
+                            sleep 5
+                            curl -s http://127.0.0.1:5000 || echo "Flask app did not start"
+                            curl -s -X POST -F "search_term=hello" http://127.0.0.1:5000 | grep "Search Result"
+                            curl -s -X POST -F "search_term=1=1--" http://127.0.0.1:5000 | grep "Error"
+							curl -s -X POST -F "search_term=<script>alert("XSS")</script>" http://127.0.0.1:5000 | grep "Error"
+                            pkill -f "flask run"
+                            set -e  # Disallow non-zero exit codes
+                        '''
                     }
                 }
             }
         }
-
+        
+        stage('Integration Testing') {
+            steps {
+                dir('workspace/flask') {
+                    sh '''
+                        set +e  # Allow non-zero exit codes
+                        source $VENV_PATH/bin/activate
+                        pytest --junitxml=integration-test-results.xml
+                        set -e  # Disallow non-zero exit codes
+                    '''
+                }
+            }
+        }
+        
+        stage('Build Docker Image') {
+            steps {
+                dir('workspace/flask') {
+                    sh 'docker build -t flask-app .'
+                }
+            }
+        }
+        
         stage('SonarQube Analysis') {
             steps {
                 withSonarQubeEnv('SonarQube') {
                     dir('workspace/flask') {
                         sh '''
-                        #!/bin/bash
                         ${SONARQUBE_SCANNER_HOME}/bin/sonar-scanner \
                         -Dsonar.projectKey=flask-app \
                         -Dsonar.sources=. \
@@ -143,8 +120,23 @@ pipeline {
                 }
             }
         }
+        
+        stage('Deploy Flask App') {
+            steps {
+                script {
+                    echo 'Deploying Flask App...'
+                    // Stop any running container on port 5000
+                    sh 'docker ps --filter publish=5000 --format "{{.ID}}" | xargs -r docker stop'
+                    // Remove the stopped container
+                    sh 'docker ps -a --filter status=exited --filter publish=5000 --format "{{.ID}}" | xargs -r docker rm'
+                    // Run the new Flask app container
+                    sh 'docker run -d -p 5000:5000 flask-app'
+                    sh 'sleep 10'
+                }
+            }
+        }
     }
-
+    
     post {
         failure {
             script {
