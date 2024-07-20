@@ -39,7 +39,7 @@ pipeline {
                     sh '''
                         #!/bin/bash
                         set +e
-                        source "${WORKSPACE}/flask/venv/bin/activate"
+                        source "${WORKSPACE}/workspace/flask/venv/bin/activate"
                         pip install -r requirements.txt
                         set -e
                     '''
@@ -73,7 +73,7 @@ pipeline {
                     sh '''
                         #!/bin/bash
                         set +e
-                        source "${WORKSPACE}/flask/venv/bin/activate"
+                        source "${WORKSPACE}/workspace/flask/venv/bin/activate"
                         pytest --junitxml=integration-test-results.xml
                         set -e
                     '''
