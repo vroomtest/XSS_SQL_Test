@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, redirect, url_for, flash
+from flask import Flask, render_template, request, redirect, url_for
 import re
 
 app = Flask(__name__)
@@ -36,12 +36,10 @@ def search():
     search_term = request.form['search_term']
 
     if is_xss_attack(search_term):
-        flash('XSS attack detected. Please enter a valid search term.')
-        return redirect(url_for('home'))
+        return render_template('index.html', error='XSS attack detected. Please enter a valid search term.')
 
     if is_sql_injection(search_term):
-        flash('SQL injection attack detected. Please enter a valid search term.')
-        return redirect(url_for('home'))
+        return render_template('index.html', error='SQL injection attack detected. Please enter a valid search term.')
 
     return render_template('result.html', search_term=search_term)
 

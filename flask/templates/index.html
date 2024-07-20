@@ -1,22 +1,16 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
 <head>
-    <title>Flask App</title>
+    <title>Search Page</title>
 </head>
 <body>
-    <h1>Search Page</h1>
+    <h1>Enter search term</h1>
     <form action="/search" method="post">
-        <input type="text" name="search_term" placeholder="Enter search term">
-        <button type="submit">Search</button>
+        <input type="text" name="search_term">
+        <input type="submit" value="Search">
     </form>
-    {% with messages = get_flashed_messages() %}
-      {% if messages %}
-        <ul>
-        {% for message in messages %}
-          <li>{{ message }}</li>
-        {% endfor %}
-        </ul>
-      {% endif %}
-    {% endwith %}
+    {% if error %}
+        <p style="color: red;">{{ error }}</p>
+    {% endif %}
 </body>
 </html>
