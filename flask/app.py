@@ -35,7 +35,7 @@ def home():
             return render_template('index.html', error='Error with search term')
         if is_sql_injection(search_term):
             return render_template('index.html',error='Error with search term')
-        return render_template_string('result.html', search_term=search_term)
+        return render_template('result.html', search_term=search_term)
     return render_template_string(HOME_PAGE_TEMPLATE)
 
 if __name__ == '__main__':
